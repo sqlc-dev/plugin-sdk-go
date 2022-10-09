@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	easyjson "github.com/mailru/easyjson"
 	plugin "github.com/tabbed/sqlc-go/codegen"
 	"github.com/tabbed/sqlc-go/metadata"
 	"github.com/tabbed/sqlc-go/sdk"
@@ -379,7 +380,7 @@ func sqlalchemySQL(s, engine string) string {
 	return s
 }
 
-func buildQueries(req *plugin.CodeGenRequest, structs []Struct) ([]Query, error) {
+func buildQueries(conf Config, req *plugin.CodeGenRequest, structs []Struct) ([]Query, error) {
 	qs := make([]Query, 0, len(req.Queries))
 	for _, query := range req.Queries {
 		if query.Name == "" {
@@ -405,8 +406,8 @@ func buildQueries(req *plugin.CodeGenRequest, structs []Struct) ([]Query, error)
 		}
 
 		qpl := 4
-		if req.Settings.Python.QueryParameterLimit != nil {
-			qpl = int(*req.Settings.Python.QueryParameterLimit)
+		if conf.QueryParameterLimit != nil {
+			qpl = int(*conf.QueryParameterLimit)
 		}
 		if len(query.Params) > qpl || qpl == 0 {
 			var cols []pyColumn
@@ -722,7 +723,7 @@ func buildModelsTree(ctx *pyTmplCtx, i *importer) *pyast.Node {
 
 	for _, m := range ctx.Models {
 		var def *pyast.ClassDef
-		if ctx.EmitPydanticModels {
+		if ctx.C.EmitPydanticModels {
 			def = pydanticNode(m.Name)
 		} else {
 			def = dataclassNode(m.Name)
@@ -836,7 +837,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 					{
 						Node: &pyast.Node_ImportFrom{
 							ImportFrom: &pyast.ImportFrom{
-								Module: i.Settings.Python.Package,
+								Module: ctx.C.Package,
 								Names: []*pyast.Node{
 									poet.Alias("models"),
 								},
@@ -857,7 +858,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 		for _, arg := range q.Args {
 			if arg.EmitStruct() {
 				var def *pyast.ClassDef
-				if ctx.EmitPydanticModels {
+				if ctx.C.EmitPydanticModels {
 					def = pydanticNode(arg.Struct.Name)
 				} else {
 					def = dataclassNode(arg.Struct.Name)
@@ -870,7 +871,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 		}
 		if q.Ret.EmitStruct() {
 			var def *pyast.ClassDef
-			if ctx.EmitPydanticModels {
+			if ctx.C.EmitPydanticModels {
 				def = pydanticNode(q.Ret.Struct.Name)
 			} else {
 				def = dataclassNode(q.Ret.Struct.Name)
@@ -882,7 +883,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 		}
 	}
 
-	if ctx.EmitSync {
+	if ctx.C.EmitSyncQuerier {
 		cls := querierClassDef()
 		for _, q := range ctx.Queries {
 			if !ctx.OutputQuery(q.SourceName) {
@@ -974,7 +975,7 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 		mod.Body = append(mod.Body, poet.Node(cls))
 	}
 
-	if ctx.EmitAsync {
+	if ctx.C.EmitAsyncQuerier {
 		cls := asyncQuerierClassDef()
 		for _, q := range ctx.Queries {
 			if !ctx.OutputQuery(q.SourceName) {
@@ -1071,14 +1072,12 @@ func buildQueryTree(ctx *pyTmplCtx, i *importer, source string) *pyast.Node {
 }
 
 type pyTmplCtx struct {
-	Models             []Struct
-	Queries            []Query
-	Enums              []Enum
-	EmitSync           bool
-	EmitAsync          bool
-	SourceName         string
-	SqlcVersion        string
-	EmitPydanticModels bool
+	SqlcVersion string
+	Models      []Struct
+	Queries     []Query
+	Enums       []Enum
+	SourceName  string
+	C           Config
 }
 
 func (t *pyTmplCtx) OutputQuery(sourceName string) bool {
@@ -1090,9 +1089,16 @@ func HashComment(s string) string {
 }
 
 func Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
+	var conf Config
+	if len(req.PluginOptions) > 0 {
+		if err := easyjson.Unmarshal(req.PluginOptions, &conf); err != nil {
+			return nil, err
+		}
+	}
+
 	enums := buildEnums(req)
 	models := buildModels(req)
-	queries, err := buildQueries(req, models)
+	queries, err := buildQueries(conf, req, models)
 	if err != nil {
 		return nil, err
 	}
@@ -1102,16 +1108,15 @@ func Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) 
 		Models:   models,
 		Queries:  queries,
 		Enums:    enums,
+		C:        conf,
 	}
 
 	tctx := pyTmplCtx{
-		Models:             models,
-		Queries:            queries,
-		Enums:              enums,
-		EmitSync:           req.Settings.Python.EmitSyncQuerier,
-		EmitAsync:          req.Settings.Python.EmitAsyncQuerier,
-		SqlcVersion:        req.SqlcVersion,
-		EmitPydanticModels: req.Settings.Python.EmitPydanticModels,
+		Models:      models,
+		Queries:     queries,
+		Enums:       enums,
+		SqlcVersion: req.SqlcVersion,
+		C:           conf,
 	}
 
 	output := map[string]string{}

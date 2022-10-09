@@ -43,6 +43,7 @@ type importer struct {
 	Models   []Struct
 	Queries  []Query
 	Enums    []Enum
+	C        Config
 }
 
 func structUses(name string, s Struct) bool {
@@ -99,7 +100,7 @@ func (i *importer) modelImportSpecs() (map[string]importSpec, map[string]importS
 	}
 
 	std := stdImports(modelUses)
-	if i.Settings.Python.EmitPydanticModels {
+	if i.C.EmitPydanticModels {
 		std["pydantic"] = importSpec{Module: "pydantic"}
 	} else {
 		std["dataclasses"] = importSpec{Module: "dataclasses"}
@@ -152,7 +153,7 @@ func (i *importer) queryImportSpecs(fileName string) (map[string]importSpec, map
 
 	pkg := make(map[string]importSpec)
 	pkg["sqlalchemy"] = importSpec{Module: "sqlalchemy"}
-	if i.Settings.Python.EmitAsyncQuerier {
+	if i.C.EmitAsyncQuerier {
 		pkg["sqlalchemy.ext.asyncio"] = importSpec{Module: "sqlalchemy.ext.asyncio"}
 	}
 
@@ -166,7 +167,7 @@ func (i *importer) queryImportSpecs(fileName string) (map[string]importSpec, map
 
 	queryValueModelImports := func(qv QueryValue) {
 		if qv.IsStruct() && qv.EmitStruct() {
-			if i.Settings.Python.EmitPydanticModels {
+			if i.C.EmitPydanticModels {
 				std["pydantic"] = importSpec{Module: "pydantic"}
 			} else {
 				std["dataclasses"] = importSpec{Module: "dataclasses"}
@@ -182,10 +183,10 @@ func (i *importer) queryImportSpecs(fileName string) (map[string]importSpec, map
 			std["typing.Optional"] = importSpec{Module: "typing", Name: "Optional"}
 		}
 		if q.Cmd == ":many" {
-			if i.Settings.Python.EmitSyncQuerier {
+			if i.C.EmitSyncQuerier {
 				std["typing.Iterator"] = importSpec{Module: "typing", Name: "Iterator"}
 			}
-			if i.Settings.Python.EmitAsyncQuerier {
+			if i.C.EmitAsyncQuerier {
 				std["typing.AsyncIterator"] = importSpec{Module: "typing", Name: "AsyncIterator"}
 			}
 		}
@@ -201,7 +202,7 @@ func (i *importer) queryImportSpecs(fileName string) (map[string]importSpec, map
 func (i *importer) queryImports(fileName string) []string {
 	std, pkg := i.queryImportSpecs(fileName)
 
-	modelImportStr := fmt.Sprintf("from %s import models", i.Settings.Python.Package)
+	modelImportStr := fmt.Sprintf("from %s import models", i.C.Package)
 
 	importLines := []string{
 		buildImportBlock(std),
