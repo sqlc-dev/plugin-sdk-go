@@ -11,11 +11,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type Request = pb.CodeGenRequest
-
-type Response = pb.CodeGenResponse
-
-type Handler func(context.Context, *Request) (*Response, error)
+type Handler func(context.Context, *pb.CodeGenRequest) (*pb.CodeGenResponse, error)
 
 func Run(h Handler) {
 	if err := run(h); err != nil {
@@ -25,7 +21,7 @@ func Run(h Handler) {
 }
 
 func run(h Handler) error {
-	var req Request
+	var req pb.CodeGenRequest
 	reqBlob, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		return err
