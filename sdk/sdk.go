@@ -1,11 +1,12 @@
 package sdk
 
 import (
-	"github.com/tabbed/sqlc-go/codegen"
+	pb "buf.build/gen/go/sqlc/sqlc/protocolbuffers/go/protos/plugin"
+
 	"github.com/tabbed/sqlc-go/pattern"
 )
 
-func DataType(n *codegen.Identifier) string {
+func DataType(n *pb.Identifier) string {
 	if n.Schema != "" {
 		return n.Schema + "." + n.Name
 	} else {
@@ -21,7 +22,7 @@ func MatchString(pat, target string) bool {
 	return matcher.MatchString(target)
 }
 
-func Matches(o *codegen.Override, n *codegen.Identifier, defaultSchema string) bool {
+func Matches(o *pb.Override, n *pb.Identifier, defaultSchema string) bool {
 	if n == nil {
 		return false
 	}
@@ -47,7 +48,7 @@ func Matches(o *codegen.Override, n *codegen.Identifier, defaultSchema string) b
 	return true
 }
 
-func SameTableName(tableID, f *codegen.Identifier, defaultSchema string) bool {
+func SameTableName(tableID, f *pb.Identifier, defaultSchema string) bool {
 	if tableID == nil {
 		return false
 	}
