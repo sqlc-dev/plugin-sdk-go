@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	pb "buf.build/gen/go/sqlc/sqlc/protocolbuffers/go/protos/plugin"
+	"google.golang.org/protobuf/proto"
 )
 
-type Request = CodeGenRequest
+type Request = pb.CodeGenRequest
 
-type Response = CodeGenResponse
+type Response = pb.CodeGenResponse
 
 type Handler func(context.Context, *Request) (*Response, error)
 
@@ -27,14 +30,14 @@ func run(h Handler) error {
 	if err != nil {
 		return err
 	}
-	if err := req.UnmarshalVT(reqBlob); err != nil {
+	if err := proto.Unmarshal(reqBlob, &req); err != nil {
 		return err
 	}
 	resp, err := h(context.Background(), &req)
 	if err != nil {
 		return err
 	}
-	respBlob, err := resp.MarshalVT()
+	respBlob, err := proto.Marshal(resp)
 	if err != nil {
 		return err
 	}
