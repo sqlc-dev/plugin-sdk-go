@@ -1,4 +1,4 @@
-module github.com/tabbed/sqlc-go
+module github.com/sqlc-dev/sqlc-go
 
 go 1.19
 
