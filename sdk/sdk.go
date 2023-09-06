@@ -3,7 +3,7 @@ package sdk
 import (
 	pb "buf.build/gen/go/sqlc/sqlc/protocolbuffers/go/protos/plugin"
 
-	"github.com/tabbed/sqlc-go/pattern"
+	"github.com/sqlc-dev/sqlc-go/pattern"
 )
 
 func DataType(n *pb.Identifier) string {
