@@ -3,8 +3,8 @@ package codegen
 import (
 	"context"
 
+	"github.com/sqlc-dev/sqlc-go/internal/rpc"
 	pb "github.com/sqlc-dev/sqlc-go/plugin"
-	"github.com/sqlc-dev/sqlc-go/rpc"
 )
 
 type Handler func(context.Context, *pb.GenerateRequest) (*pb.GenerateResponse, error)
