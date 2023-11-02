@@ -14,8 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"github.com/sqlc-dev/sqlc-go/plugin"
-	pb "github.com/sqlc-dev/sqlc-go/plugin"
+	pb "github.com/sqlc-dev/plugin-sdk-go/plugin"
 )
 
 func Handle(server pb.CodegenServiceServer) {
@@ -109,7 +108,7 @@ func (s *stdioRPCHandler) processUnaryRPC(srv *serviceInfo, md *grpc.MethodDesc)
 	// TODO make this generic
 	switch md.MethodName {
 	case "Generate":
-		var req plugin.GenerateRequest
+		var req pb.GenerateRequest
 		if err := proto.Unmarshal(reqBytes, &req); err != nil {
 			return err
 		}
