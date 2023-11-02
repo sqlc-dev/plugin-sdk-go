@@ -7,11 +7,11 @@ import (
 	"io"
 	"os"
 
-	pb "buf.build/gen/go/sqlc/sqlc/protocolbuffers/go/protos/plugin"
+	pb "github.com/sqlc-dev/sqlc-go/plugin"
 	"google.golang.org/protobuf/proto"
 )
 
-type Handler func(context.Context, *pb.CodeGenRequest) (*pb.CodeGenResponse, error)
+type Handler func(context.Context, *pb.GenerateRequest) (*pb.GenerateResponse, error)
 
 func Run(h Handler) {
 	if err := run(h); err != nil {
@@ -21,7 +21,7 @@ func Run(h Handler) {
 }
 
 func run(h Handler) error {
-	var req pb.CodeGenRequest
+	var req pb.GenerateRequest
 	reqBlob, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		return err
